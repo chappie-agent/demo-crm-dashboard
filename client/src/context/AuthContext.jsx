@@ -28,41 +28,27 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (username, password) => {
-    // Static deploy fallback (no backend API): allow demo credentials locally.
-    const maybeDemoLogin = () => {
-      if (username === 'admin' && password === 'password123') {
-        localStorage.setItem('token', DEMO_TOKEN);
-        setToken(DEMO_TOKEN);
-        setUser(DEMO_USER);
-        return { token: DEMO_TOKEN, user: DEMO_USER };
-      }
-      throw new Error('Invalid username or password');
-    };
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      if (!res.ok) {
-        let data = {};
-        try { data = await res.json(); } catch (_) {}
-        throw new Error(data.error || 'Login failed');
-      }
-
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return data;
-    } catch (err) {
-      if (err?.message?.includes('expected pattern') || err instanceof TypeError) {
-        return maybeDemoLogin();
-      }
-      throw err;
+    // Static deploy fallback (no backend API): accept demo credentials immediately.
+    if (username === 'admin' && password === 'password123') {
+      localStorage.setItem('token', DEMO_TOKEN);
+      setToken(DEMO_TOKEN);
+      setUser(DEMO_USER);
+      return { token: DEMO_TOKEN, user: DEMO_USER };
     }
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data;
   };
 
   const logout = () => {
